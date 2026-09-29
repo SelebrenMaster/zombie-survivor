@@ -105,7 +105,6 @@
 
         function spawnEnemy() {
             const rand = Math.random();
-            // Increase speed by ~5% (1.2 -> 1.26)
             let type = { name: "Normal", hp: 1, speed: 1.26, radius: 15, color: "#ff4444", xp: 1, behavior: "straight" };
             if (rand > 0.9) { 
                 type = { name: "Tank", hp: 5, speed: 0.63, radius: 25, color: "#880000", xp: 5, behavior: "straight" };
@@ -119,6 +118,7 @@
                 y = Math.random() * canvas.height;
             } else {
                 x = Math.random() * canvas.width;
+                y = Math.random() < 0.5 ? -type.radius : canvas.height + type.//Fixed truncated line
                 y = Math.random() < 0.5 ? -type.radius : canvas.height + type.radius;
             }
             enemies.push({ ...type, x, y, currentHp: type.hp, angleOffset: Math.random() * Math.PI * 2 });
@@ -285,14 +285,12 @@
             weaponDrops.forEach(w => {
                 const age = now - w.spawnTime;
                 if (age > 3000) {
-                    // Blink effect: toggle visibility every 200ms
                     if (Math.floor(now / 200) % 2 === 0) {
                         ctx.fillStyle = w.color;
                         ctx.beginPath(); ctx.arc(w.x, w.y, w.radius, 0, Math.PI*2); ctx.fill();
                     }
                 } else {
                     ctx.fillStyle = w.color;
-                    ctx.beginPath(); ctx.arc(w.x, w.y, w.//Slight error in draft, fixed in final.
                     ctx.beginPath(); ctx.arc(w.x, w.y, w.radius, 0, Math.PI*2); ctx.fill();
                 }
                 ctx.fillStyle = "white"; ctx.font = "10px Arial";
