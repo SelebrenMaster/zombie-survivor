@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Zombie Survivor Pro</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #121212; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+        body { margin: 0; overflow: hidden; background: #121212; font-family: sans-serif; user-select: none; }
         canvas { display: block; }
         #ui {
             position: absolute; top: 20px; left: 20px; color: white;
@@ -60,12 +60,7 @@
     <canvas id="gameCanvas"></canvas>
 
     <script>
-        window.onerror = function(msg, url, line) {
-            document.getElementById('debug-log').innerText = "Error: " + msg + " line: " + line;
-            return false;
-        };
-
-        window.onload = function() {
+        (function() {
             const canvas = document.getElementById("gameCanvas");
             const ctx = canvas.getContext("2d");
             const scoreEl = document.getElementById("score");
@@ -75,6 +70,11 @@
             const gameOverEl = document.getElementById("game-over");
             const levelUpEl = document.getElementById("level-up");
             const upgradeListEl = document.getElementById("upgrade-list");
+            const debugLog = document.getElementById("debug-log");
+
+            function logError(msg) {
+                debugLog.innerText = "Error: " + msg;
+            }
 
             function resize() {
                 canvas.width = window.innerWidth;
@@ -123,7 +123,6 @@
                 } else if (rand > 0.7) { 
                     type = { name: "Runner", hp: 0.5, speed: 2.63, radius: 10, color: "#ff8888", xp: 2, behavior: "zig-zag" };
                 }
-
                 let x, y;
                 if (Math.random() < 0.5) {
                     x = Math.random() < 0.5 ? -type.radius : canvas.width + type.radius;
@@ -150,7 +149,6 @@
                 const now = Date.now();
                 if (now - player.lastShot < player.weapon.fireRate) return;
                 player.lastShot = now;
-
                 if (enemies.length === 0) return;
                 let closest = enemies[0];
                 let minDist = Infinity;
@@ -158,14 +156,12 @@
                     const dist = Math.hypot(enemies[i].x - player.x, enemies[i].y - player.y);
                     if (dist < minDist) { minDist = dist; closest = enemies[i]; }
                 }
-
                 const baseAngle = Math.atan2(closest.y - player.y, closest.x - player.x);
                 for (let i = 0; i < player.weapon.count; i++) {
                     const angle = baseAngle + (Math.random() - 0.5) * player.weapon.spread;
                     bullets.push({
                         x: player.x, y: player.y,
                         vx: Math.cos(angle) * player.weapon.bulletSpeed,
-                        vy: Math.sin(angle) * player.//Slight error in provided code, fixing it now
                         vy: Math.sin(angle) * player.weapon.bulletSpeed,
                         radius: 4, color: player.weapon.color, damage: player.weapon.damage
                     });
@@ -197,133 +193,132 @@
             }
 
             function update() {
-                if (!gameActive || isPaused) return;
-                player.x += (targetX - player.x) * 0.1;
-                player.y += (targetY - player.y) * 0.1;
-                shoot();
-
-                for (let i = bullets.length - 1; i >= 0; i--) {
-                    const b = bullets[i];
-                    b.x += b.vx; b.y += b.vy;
-                    if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
-                        bullets.splice(i, 1);
+                try {
+                    if (!gameActive || isPaused) return;
+                    player.x += (targetX - player.x) * 0.1;
+                    player.y += (targetY - player.y) * 0.1;
+                    shoot();
+                    for (let i = bullets.length - 1; i >= 0; i--) {
+                        const b = bullets[i];
+                        b.x += b.vx; b.y += b.vy;
+                        if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
+                            bullets.splice(i, 1);
+                        }
                     }
-                }
-
-                enemySpawnTimer++;
-                if (enemySpawnTimer > 60) { spawnEnemy(); enemySpawnTimer = 0; }
-                if (Math.random() < 0.002) spawnWeaponDrop();
-
-                for (let i = enemies.length - 1; i >= 0; i--) {
-                    const e = enemies[i];
-                    let angle = Math.atan2(player.y - e.y, player.x - e.x);
-                    if (e.behavior === "zig-zag") {
-                        angle += Math.sin(Date.now() * 0.005 + e.angleOffset) * 0.5;
-                    }
-                    e.x += Math.cos(angle) * e.speed;
-                    e.y += Math.sin(angle) * e.speed;
-
-                    if (Math.hypot(e.x - player.x, e.y - player.y) < e.radius + player.radius) {
-                        gameActive = false;
-                        document.getElementById("final-score").innerText = "Убито зомби: " + score;
-                        gameOverEl.style.display = "block";
-                    }
-
-                    for (let j = bullets.length - 1; j >= 0; j--) {
-                        const b = bullets[j];
-                        if (Math.hypot(e.x - b.x, e.y - b.y) < e.radius + b.radius) {
-                            e.currentHp -= b.damage;
-                            bullets.splice(j, 1);
-                            if (e.currentHp <= 0) {
-                                gems.push({ x: e.x, y: e.y, radius: 4, color: "#44ff44", xp: e.xp });
-                                enemies.splice(i, 1);
-                                score++;
-                                scoreEl.innerText = score;
-                                break;
+                    enemySpawnTimer++;
+                    if (enemySpawnTimer > 60) { spawnEnemy(); enemySpawnTimer = 0; }
+                    if (Math.random() < 0.002) spawnWeaponDrop();
+                    for (let i = enemies.length - 1; i >= 0; i--) {
+                        const e = enemies[i];
+                        let angle = Math.atan2(player.y - e.y, player.x - e.x);
+                        if (e.behavior === "zig-zag") {
+                            angle += Math.sin(Date.now() * 0.005 + e.angleOffset) * 0.5;
+                        }
+                        e.x += Math.cos(angle) * e.speed;
+                        e.y += Math.sin(angle) * e.speed;
+                        if (Math.hypot(e.x - player.x, e.y - player.y) < e.radius + player.radius) {
+                            gameActive = false;
+                            document.getElementById("final-score").innerText = "Убито зомби: " + score;
+                            gameOverEl.style.display = "block";
+                        }
+                        for (let j = bullets.length - 1; j >= 0; j--) {
+                            const b = bullets[j];
+                            if (Math.hypot(e.x - b.x, e.y - b.y) < e.//Slight error in draft, fixing it now
+                            if (Math.hypot(e.x - b.x, e.y - b.y) < e.radius + b.radius) {
+                                e.currentHp -= b.damage;
+                                bullets.splice(j, 1);
+                                if (e.currentHp <= 0) {
+                                    gems.push({ x: e.x, y: e.y, radius: 4, color: "#44ff44", xp: e.xp });
+                                    enemies.splice(i, 1);
+                                    score++;
+                                    scoreEl.innerText = score;
+                                    break;
+                                }
                             }
                         }
                     }
-                }
-
-                for (let i = gems.length - 1; i >= 0; i--) {
-                    const g = gems[i];
-                    if (Math.hypot(g.x - player.x, g.y - player.y) < g.radius + player.radius) {
-                        xp += g.xp;
-                        gems.splice(i, 1);
-                        if (xp >= xpNextLevel) {
-                            level++; xp -= xpNextLevel;
-                            xpNextLevel = Math.floor(xpNextLevel * 1.3);
-                            levelEl.innerText = level;
-                            handleLevelUp();
+                    for (let i = gems.length - 1; i >= 0; i--) {
+                        const g = gems[i];
+                        if (Math.hypot(g.x - player.x, g.y - player.y) < g.radius + player.radius) {
+                            xp += g.xp;
+                            gems.splice(i, 1);
+                            if (xp >= xpNextLevel) {
+                                level++; xp -= xpNextLevel;
+                                xpNextLevel = Math.floor(xpNextLevel * 1.3);
+                                levelEl.innerText = level;
+                                handleLevelUp();
+                            }
+                            xpBar.style.width = (xp / xpNextLevel * 100) + "%";
                         }
-                        xpBar.style.width = (xp / xpNextLevel * 100) + "%";
                     }
-                }
-
-                const now = Date.now();
-                for (let i = weaponDrops.length - 1; i >= 0; i--) {
-                    const w = weaponDrops[i];
-                    const age = now - w.spawnTime;
-                    if (age > 6000) {
-                        weaponDrops.splice(i, 1);
-                    } else if (Math.hypot(w.x - player.x, w.y - player.y) < w.radius + player.radius) {
-                        player.weapon = w.weapon;
-                        weaponEl.innerText = w.weapon.name;
-                        weaponDrops.splice(i, 1);
+                    const now = Date.now();
+                    for (let i = weaponDrops.length - 1; i >= 0; i--) {
+                        const w = weaponDrops[i];
+                        const age = now - w.spawnTime;
+                        if (age > 6000) {
+                            weaponDrops.splice(i, 1);
+                        } else if (Math.hypot(w.x - player.x, w.y - player.y) < w.radius + player.radius) {
+                            player.weapon = w.weapon;
+                            weaponEl.innerText = w.weapon.name;
+                            weaponDrops.splice(i, 1);
+                        }
                     }
-                }
+                } catch (e) { logError(e.message); }
             }
 
             function draw() {
-                ctx.fillStyle = "#121212";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.strokeStyle = "#222";
-                const gridSize = 60;
-                const offsetX = -player.x % gridSize;
-                const offsetY = -player.y % gridSize;
-                for(let x = offsetX; x < canvas.width; x += gridSize) {
-                    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-                }
-                for(let y = offsetY; y < canvas.height; y += gridSize) {
-                    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-                }
-                ctx.fillStyle = player.color;
-                ctx.beginPath(); ctx.arc(player.x, player.y, player.radius, 0, Math.PI*2); ctx.fill();
-                bullets.forEach(b => {
-                    ctx.fillStyle = b.color;
-                    ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI*2); ctx.fill();
-                });
-                enemies.forEach(e => {
-                    ctx.fillStyle = e.color;
-                    ctx.beginPath(); ctx.arc(e.x, e.y, e.radius, 0, Math.PI*2); ctx.fill();
-                    if (e.name === "Tank") {
-                        ctx.fillStyle = "red"; ctx.fillRect(e.x - 15, e.y - 30, 30, 4);
-                        ctx.fillStyle = "green"; ctx.fillRect(e.x - 15, e.y - 30, (e.currentHp/e.hp)*30, 4);
+                try {
+                    ctx.fillStyle = "#121212";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.strokeStyle = "#222";
+                    const gridSize = 60;
+                    const offsetX = -player.x % gridSize;
+                    const offsetY = -player.y % gridSize;
+                    for(let x = offsetX; x < canvas.width; x += gridSize) {
+                        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
                     }
-                });
-                gems.forEach(g => {
-                    ctx.fillStyle = g.color;
-                    ctx.beginPath(); ctx.arc(g.x, g.y, g.radius, 0, Math.PI*2); ctx.fill();
-                });
-                const now = Date.now();
-                weaponDrops.forEach(w => {
-                    const age = now - w.spawnTime;
-                    if (age > 3000) {
-                        if (Math.floor(now / 200) % 2 === 0) {
+                    for(let y = offsetY; y < canvas.height; y += gridSize) {
+                        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+                    }
+                    ctx.fillStyle = player.color;
+                    ctx.beginPath(); ctx.arc(player.x, player.y, player.radius, 0, Math.PI*2); ctx.fill();
+                    bullets.forEach(b => {
+                        ctx.fillStyle = b.color;
+                        ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI*2); ctx.fill();
+                    });
+                    enemies.forEach(e => {
+                        ctx.fillStyle = e.color;
+                        ctx.beginPath(); ctx.arc(e.x, e.y, e.radius, 0, Math.PI*2); ctx.fill();
+                        if (e.name === "Tank") {
+                            ctx.fillStyle = "red"; ctx.fillRect(e.x - 15, e.y - 30, 30, 4);
+                            ctx.fillStyle = "green"; ctx.fillRect(e.x - 15, e.y - 30, (e.currentHp/e.hp)*30, 4);
+                        }
+                    });
+                    gems.forEach(g => {
+                        ctx.fillStyle = g.color;
+                        ctx.beginPath(); ctx.arc(g.x, g.y, g.radius, 0, Math.PI*2); ctx.fill();
+                    });
+                    const now = Date.now();
+                    weaponDrops.forEach(w => {
+                        const age = now - w.spawnTime;
+                        if (age > 3000) {
+                            if (Math.floor(now / 200) % 2 === 0) {
+                                ctx.fillStyle = w.color;
+                                ctx.beginPath(); ctx.arc(w.x, w.y, w.radius, 0, Math.PI*2); ctx.fill();
+                            }
+                        } else {
                             ctx.fillStyle = w.color;
                             ctx.beginPath(); ctx.arc(w.x, w.y, w.radius, 0, Math.PI*2); ctx.fill();
                         }
-                    } else {
-                        ctx.fillStyle = w.color;
-                        ctx.beginPath(); ctx.arc(w.x, w.y, w.radius, 0, Math.PI*2); ctx.fill();
-                    }
-                    ctx.fillStyle = "white"; ctx.font = "10px Arial";
-                    ctx.fillText(w.weapon.name, w.x - 20, w.y - 20);
-                });
-                requestAnimationFrame(() => { update(); draw(); });
+                        ctx.fillStyle = "white"; ctx.font = "10px Arial";
+                        ctx.fillText(w.weapon.name, w.x - 20, w.y - 20);
+                    });
+                    requestAnimationFrame(() => { update(); draw(); });
+                } catch (e) { logError(e.message); }
             }
             draw();
-        };
-    </script>
+        }
+    })();
+</script>
 </body>
 </html>
